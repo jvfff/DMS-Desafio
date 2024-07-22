@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Verificação de Conta</title>
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Verificação de Conta</h2>
+    <p>Informe o código que você recebeu no email para ativar sua conta.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Verificar</button>
+    </form>
+</div>
+</body>
+</html>

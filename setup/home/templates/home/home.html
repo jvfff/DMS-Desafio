@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <title>CampoFácil</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .navbar-brand, .nav-link {
+            font-size: 1.2em;
+        }
+
+        .btn-custom {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-custom:hover {
+            background-color: #218838;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+
+        .card-title {
+            color: #28a745;
+        }
+
+        footer {
+            background-color: #333634;
+            color: white;
+            margin-top: auto;
+            padding: 20px 0;
+        }
+
+        .footer-text {
+            margin: 0;
+        }
+
+        .card-img-top {
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .info-section {
+            background-color: #f8f9fa;
+            padding: 50px 0;
+        }
+
+        .testimonial {
+            background-color: #28a745;
+            color: white;
+            padding: 50px 0;
+        }
+
+        .testimonial p {
+            font-size: 1.2em;
+        }
+
+        .testimonial .carousel-indicators li {
+            background-color: white;
+        }
+
+        #features .carousel-item {
+            height: 500px; 
+        }
+
+        #features .carousel-item img {
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .highlight-section {
+            background-color: #343a40;
+            color: white;
+            padding: 50px 0;
+        }
+
+        .highlight-section h2 {
+            margin-bottom: 30px;
+        }
+
+        .highlight-card {
+            background-color: #495057;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            transform: scale(1.05);
+        }
+
+        .highlight-card img {
+            border-radius: 10px;
+        }
+
+        .highlight-card h5 {
+            margin-top: 15px;
+        }
+
+        .about-section {
+            padding: 50px 0;
+            background-color: #e9ecef;
+        }
+
+        .about-section h2, .services-section h2, .contact-section h2 {
+            margin-bottom: 30px;
+        }
+
+        .services-section {
+            background-color: #f8f9fa;
+            padding: 50px 0;
+        }
+
+        .service-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .service-box:hover {
+            transform: translateY(-10px);
+        }
+
+        .service-icon {
+            font-size: 3em;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        .testimonial-section {
+            padding: 50px 0;
+            background-color: #f8f9fa;
+        }
+
+        .testimonial .carousel-item {
+            padding: 0 50px;
+        }
+
+        .contact-section {
+            padding: 50px 0;
+        }
+
+        .map-container {
+            height: 400px;
+        }
+
+        .contact-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-form input, .contact-form textarea {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">CampoFácil</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'home' %}">Inicio <span class="sr-only">(current)</span></a>
+            </li>
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Minha Conta</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Entrar</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<section id="features" class="carousel slide" data-ride="carousel">
+    <ol class="carousel-indicators">
+        <li data-target="#features" data-slide-to="0" class="active"></li>
+        <li data-target="#features" data-slide-to="1"></li>
+        <li data-target="#features" data-slide-to="2"></li>
+    </ol>
+    <div class="carousel-inner">
+        <div class="carousel-item active">
+            <img src="https://sportsjob.com.br/wp-content/uploads/2020/11/futebol.jpg" class="d-block w-100" alt="Reserva de Campos">
+            <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInDown">
+                <h5>Reserve Campos</h5>
+                <p>Encontre e reserve campos de futebol disponíveis perto de você.</p>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <img src="https://clubepaineiras.org.br/wp-content/uploads/2022/05/jogadores.jpg" class="d-block w-100" alt="Aluguel de Campos">
+            <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInDown">
+                <h5>Alugue Campos</h5>
+                <p>Ofereça seus campos de futebol para aluguel e ganhe dinheiro extra.</p>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyhR7UGo2yiD1xiTQuL83hZx29uvvqDuzuag&s" class="d-block w-100" alt="Gerenciamento de Campos">
+            <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInDown">
+                <h5>Gerencie Campos</h5>
+                <p>Administre seus campos de futebol com nosso painel de controle intuitivo.</p>
+            </div>
+        </div>
+    </div>
+    <a class="carousel-control-prev" href="#features" role="button" data-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="sr-only">Previous</span>
+    </a>
+    <a class="carousel-control-next" href="#features" role="button" data-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="sr-only">Next</span>
+    </a>
+</section>
+
+<section class="highlight-section text-center">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInUp">Destaques</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="highlight-card animate__animated animate__zoomIn">
+                    <img src="https://sportsjob.com.br/wp-content/uploads/2020/11/futebol.jpg" class="img-fluid" alt="Reserva de Campos">
+                    <h5>Reserve Campos</h5>
+                    <p>Encontre e reserve campos de futebol disponíveis perto de você. Garantimos a melhor experiência e os melhores preços.</p>
+                    <a href="#" class="btn btn-primary">Saiba Mais</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="highlight-card animate__animated animate__zoomIn">
+                    <img src="https://clubepaineiras.org.br/wp-content/uploads/2022/05/jogadores.jpg" class="img-fluid" alt="Aluguel de Campos">
+                    <h5>Alugue Campos</h5>
+                    <p>Ofereça seus campos de futebol para aluguel e ganhe dinheiro extra. Nosso sistema facilita todo o processo para você.</p>
+                    <a href="#" class="btn btn-primary">Saiba Mais</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="highlight-card animate__animated animate__zoomIn">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyhR7UGo2yiD1xiTQuL83hZx29uvvqDuzuag&s" class="img-fluid" alt="Gerenciamento de Campos">
+                    <h5>Gerencie Campos</h5>
+                    <p>Administre seus campos de futebol e mantenha tudo organizado com nosso painel de controle intuitivo e fácil de usar.</p>
+                    <a href="#" class="btn btn-primary">Saiba Mais</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="about-section text-center">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInUp">Sobre Nós</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <img src="https://via.placeholder.com/500" class="img-fluid rounded animate__animated animate__fadeInLeft" alt="Sobre Nós">
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+                <p class="animate__animated animate__fadeInRight">O CampoFácil é a plataforma líder para reserva, aluguel e gerenciamento de campos de futebol. Nossa missão é conectar jogadores, organizadores e proprietários de campos, facilitando a prática do esporte mais amado do mundo. Com uma interface intuitiva e uma vasta rede de campos disponíveis, tornamos a experiência de encontrar e gerenciar campos de futebol mais simples e eficiente.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="services-section text-center">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInUp">Nossos Serviços</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="service-box animate__animated animate__zoomIn">
+                    <div class="service-icon">
+                        <i class="fas fa-futbol"></i>
+                    </div>
+                    <h5>Reserva de Campos</h5>
+                    <p>Encontre e reserve campos de futebol disponíveis perto de você. Garantimos a melhor experiência e os melhores preços.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-box animate__animated animate__zoomIn">
+                    <div class="service-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <h5>Aluguel de Campos</h5>
+                    <p>Ofereça seus campos de futebol para aluguel e ganhe dinheiro extra. Nosso sistema facilita todo o processo para você.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-box animate__animated animate__zoomIn">
+                    <div class="service-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h5>Gerenciamento de Campos</h5>
+                    <p>Administre seus campos de futebol e mantenha tudo organizado com nosso painel de controle intuitivo e fácil de usar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="testimonial-section text-center">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInUp">O que nossos clientes dizem</h2>
+        <div id="testimonialCarousel" class="carousel slide animate__animated animate__fadeInUp" data-ride="carousel">
+            <ol class="carousel-indicators">
+                <li data-target="#testimonialCarousel" data-slide-to="0" class="active"></li>
+                <li data-target="#testimonialCarousel" data-slide-to="1"></li>
+                <li data-target="#testimonialCarousel" data-slide-to="2"></li>
+                <li data-target="#testimonialCarousel" data-slide-to="3"></li>
+                <li data-target="#testimonialCarousel" data-slide-to="4"></li>
+            </ol>
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <p>"O CampoFácil facilitou muito a gestão do meu campo. Agora tenho mais tempo para focar nos clientes e nos jogos!"</p>
+                    <small>- João Silva</small>
+                </div>
+                <div class="carousel-item">
+                    <p>"Reservar um campo nunca foi tão fácil. Adoro a interface e a rapidez do sistema!"</p>
+                    <small>- Maria Fernanda</small>
+                </div>
+                <div class="carousel-item">
+                    <p>"Alugar meu campo pelo CampoFácil foi a melhor decisão que tomei. A plataforma é eficiente e segura."</p>
+                    <small>- Carlos Alberto</small>
+                </div>
+                <div class="carousel-item">
+                    <p>"A plataforma do CampoFácil é muito intuitiva e fácil de usar. Recomendo a todos os meus amigos!"</p>
+                    <small>- Letícia Santos</small>
+                </div>
+                <div class="carousel-item">
+                    <p>"Com o CampoFácil, organizar jogos de futebol se tornou muito mais simples e rápido."</p>
+                    <small>- Roberto Oliveira</small>
+                </div>
+            </div>
+            <a class="carousel-control-prev" href="#testimonialCarousel" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="carousel-control-next" href="#testimonialCarousel" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="contact-section text-center">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInUp">Contato</h2>
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <form class="contact-form animate__animated animate__fadeInUp">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <input type="text" class="form-control" placeholder="Nome">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <input type="email" class="form-control" placeholder="Email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea class="form-control" rows="4" placeholder="Mensagem"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-custom">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="text-center">
+    <p class="footer-text">&copy; 2024 CampoFácil. Todos os direitos reservados.</p>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+
+</script>
+</body>
+</html>
