@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <title>Login</title>
+    <style>
+        .social-login img {
+            width: 40px;
+            height: 40px;
+        }
+    </style>
 </head>
 <body>
+    {% load socialaccount %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="{% url 'home' %}">CampoFácil</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +41,11 @@
         <div class="text-center mt-3">
             <p>Não tem uma conta? <a href="{% url 'register' %}" class="text-success">Registre-se aqui</a></p>
             <p><a href="{% url 'password_reset_request' %}" class="text-success">Esqueceu a senha?</a></p>
+        </div>
+        <div class="text-center mt-3">
+            <a href="{% provider_login_url 'google' %}" class="d-block mx-auto" style="width: fit-content;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/480px-Google_%22G%22_logo.svg.png" alt="Login com Google" class="img-fluid" style="max-width: 40px; max-height: 40px;">
+            </a>
         </div>
     </div>
 </div>
