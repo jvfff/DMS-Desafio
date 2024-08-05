@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth.models import User
+from .models import UserProfile
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -54,3 +55,8 @@ class PasswordResetVerifyForm(forms.Form):
 
 class PasswordResetCompleteForm(SetPasswordForm):
     pass
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['nome', 'cpf', 'cep', 'endereco', 'email']
