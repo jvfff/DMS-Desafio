@@ -16,7 +16,6 @@ from .models import UserProfile
 import random
 from django.contrib.auth.decorators import login_required
 
-
 def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -99,7 +98,7 @@ class LogoutView(View):
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('home')
-    
+
 class PasswordResetRequestView(View):
     def get(self, request):
         form = PasswordResetRequestForm()
@@ -112,15 +111,19 @@ class PasswordResetRequestView(View):
             users = User.objects.filter(email=email)
             if users.exists():
                 for user in users:
-                    user_profile = UserProfile.objects.get(user=user)
-                    user_profile.reset_code = str(random.randint(100000, 999999))
-                    user_profile.save()
+                    try:
+                        user_profile = UserProfile.objects.get(user=user)
+                        user_profile.reset_code = str(random.randint(100000, 999999))
+                        user_profile.save()
 
-                    subject = 'Código de Redefinição de Senha'
-                    message = f'Seu código de redefinição de senha é {user_profile.reset_code}'
-                    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
+                        subject = 'Código de Redefinição de Senha'
+                        message = f'Seu código de redefinição de senha é {user_profile.reset_code}'
+                        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
 
-                messages.success(request, 'Código de redefinição de senha enviado para o email fornecido.')
+                        messages.success(request, 'Código de redefinição de senha enviado para o email fornecido.')
+                    except UserProfile.DoesNotExist:
+                        messages.error(request, 'Perfil de usuário não encontrado para este usuário.')
+                        continue
                 return redirect('password_reset_verify')
             else:
                 messages.error(request, 'Email não encontrado.')
@@ -163,7 +166,7 @@ class PasswordResetCompleteView(View):
 @login_required
 def perfil_view(request):
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
-    
+
     if request.method == 'POST':
         field = request.POST.get('field')
         value = request.POST.get('value')
