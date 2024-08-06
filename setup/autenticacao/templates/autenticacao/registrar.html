@@ -15,7 +15,7 @@
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ml-auto">
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'home' %}">Inicio</a>
+                <a class="nav-link" href="{% url 'home' %}">Início</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'login' %}">Entrar</a>
@@ -28,7 +28,22 @@
         <h2 class="text-center text-primary mb-4">Registrar</h2>
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="form-group">
+                <label for="id_username">Nome de usuário</label>
+                <input type="text" name="username" class="form-control" id="id_username">
+            </div>
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" name="email" class="form-control" id="id_email">
+            </div>
+            <div class="form-group">
+                <label for="id_password1">Senha</label>
+                <input type="password" name="password1" class="form-control" id="id_password1">
+            </div>
+            <div class="form-group">
+                <label for="id_password2">Confirme a Senha</label>
+                <input type="password" name="password2" class="form-control" id="id_password2">
+            </div>
             <button type="submit" class="btn btn-primary btn-block">Registrar</button>
         </form>
         <div class="text-center mt-3">
