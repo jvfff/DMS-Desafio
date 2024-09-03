@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Informações do Campo</title>
+</head>
+<body>
+    <div class="container">
+        <h2>Informações do Campo</h2>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ campo.nome }}</h5>
+                <p><strong>Localização:</strong> {{ campo.localizacao }}</p>
+                <p><strong>Tipo de Gramado:</strong> {{ campo.get_tipo_gramado_display }}</p>
+                <p><strong>Iluminação:</strong> {{ campo.iluminacao|yesno:"Sim,Não" }}</p>
+                <p><strong>Vestiários:</strong> {{ campo.vestiarios }}</p>
+                <p><strong>Largura:</strong> {{ campo.largura }} metros</p>
+                <p><strong>Comprimento:</strong> {{ campo.comprimento }} metros</p>
+                <p><strong>Capacidade:</strong> {{ campo.capacidade }} pessoas</p>
+                <p><strong>Facilidades:</strong> {{ campo.facilidades }}</p>
+                <p><strong>Preço por Hora:</strong> R$ {{ campo.preco_por_hora }}</p>
+                <p><strong>Preço por Diária:</strong> R$ {{ campo.preco_por_dia }}</p>
+                <p><strong>Disponibilidade:</strong> {{ campo.disponibilidade }}</p>
+                <p><strong>Descrição Adicional:</strong> {{ campo.descricao_adicional }}</p>
+                
+                {% if campo.fotos %}
+                    <img src="{{ campo.fotos.url }}" alt="Foto do Campo" class="img-fluid">
+                {% else %}
+                    <p>Sem imagem disponível</p>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'admin_gerenciar_campos' %}" class="btn btn-primary mt-3">Voltar</a>
+    </div>
+</body>
+</html>

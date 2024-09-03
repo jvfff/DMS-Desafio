@@ -1,0 +1,3 @@
+coverage run --source='.' runtests.py
+coverage run --source='autenticacao' manage.py test autenticacao.tests 
+coverage report -m

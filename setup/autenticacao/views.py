@@ -11,10 +11,12 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.contrib import messages
-from .forms import CustomUserCreationForm, VerificationForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetCompleteForm, UserProfileForm
-from .models import UserProfile
+from .forms import CustomUserCreationForm, VerificationForm, PasswordResetRequestForm, PasswordResetVerifyForm, PasswordResetCompleteForm, UserProfileForm, CampoForm, ReservaForm
+from .models import UserProfile, Campo, Reserva
+
 import random
 from django.contrib.auth.decorators import login_required
+
 
 def activate(request, uidb64, token):
     try:
@@ -178,3 +180,211 @@ def perfil_view(request):
         form = UserProfileForm(instance=user_profile)
 
     return render(request, 'autenticacao/perfil.html', {'perfil': user_profile, 'form': form})
+
+@login_required
+def cadastrar_campo(request):
+    if request.method == 'POST':
+        form = CampoForm(request.POST, request.FILES)
+        if form.is_valid():
+            campo = form.save(commit=False)
+            campo.latitude = request.POST.get('latitude')
+            campo.longitude = request.POST.get('longitude')
+            campo.usuario = request.user
+            campo.save()
+            return redirect('gerenciar_campos')
+    else:
+        form = CampoForm()
+    return render(request, 'autenticacao/gerenciar_campos.html', {'form': form})
+
+@login_required
+def gerenciar_campos(request):
+    if request.method == 'POST':
+        form = CampoForm(request.POST, request.FILES)
+        if form.is_valid():
+            campo = form.save(commit=False)
+            campo.usuario = request.user
+            campo.save()
+            return redirect('gerenciar_campos')
+    else:
+        form = CampoForm()
+
+    campos = Campo.objects.filter(usuario=request.user)
+    return render(request, 'autenticacao/gerenciar_campos.html', {'form': form, 'campos': campos})
+
+
+@login_required
+def admin_gerenciar_campos(request):
+    if not request.user.is_superuser:
+        return redirect('home')
+
+    campos_pendentes = Campo.objects.filter(status='pendente')
+    campos_aprovados = Campo.objects.filter(status='aprovado')
+    return render(request, 'autenticacao/admin_gerenciar_campos.html', {
+        'campos_pendentes': campos_pendentes,
+        'campos_aprovados': campos_aprovados
+    })
+
+@login_required
+def aprovar_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id)
+    campo.status = 'aprovado'
+    campo.save()
+    return redirect('admin_gerenciar_campos')
+
+@login_required
+def meus_pedidos(request):
+    campos = Campo.objects.filter(usuario=request.user)
+    return render(request, 'autenticacao/meus_pedidos.html', {'campos': campos})
+
+@login_required
+def recusar_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id)
+    campo.status = 'recusado'
+    campo.save()
+    return redirect('admin_gerenciar_campos')
+
+@login_required
+def editar_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id, usuario=request.user)
+    if request.method == 'POST':
+        form = CampoForm(request.POST, instance=campo)
+        if form.is_valid():
+            form.save()
+            return redirect('gerenciar_campos')
+    else:
+        form = CampoForm(instance=campo)
+    return render(request, 'autenticacao/editar_campo.html', {'form': form, 'campo': campo})
+
+@login_required
+def deletar_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id, usuario=request.user)
+    if request.method == 'POST':
+        campo.delete()
+        return redirect('gerenciar_campos')
+    return render(request, 'autenticacao/deletar_campo.html', {'campo': campo})
+
+@login_required
+def perfil(request):
+    is_admin = request.user.is_superuser
+    return render(request, 'autenticacao/perfil.html', {'is_admin': is_admin, 'perfil': request.user})
+
+@login_required
+def info_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id)
+    return render(request, 'autenticacao/info_campo.html', {'campo': campo})
+
+@login_required
+def lista_campos_aprovados(request):
+    campos_aprovados = Campo.objects.filter(status='aprovado')
+    return render(request, 'home/lista_campos_aprovados.html', {'campos': campos_aprovados})
+
+from django.db.models import Q
+from django.shortcuts import render
+
+def pesquisa_campos(request):
+    query = request.GET.get('q')
+    vestiarios = request.GET.get('vestiarios')
+    iluminacao = request.GET.get('iluminacao')
+    tipo_gramado = request.GET.get('tipo_gramado')
+
+    filtros = Q()
+
+    if query:
+        filtros &= Q(nome__icontains=query) | Q(localizacao__icontains=query)
+    
+    if vestiarios:
+        if vestiarios == '4+':
+            filtros &= Q(vestiarios__gte=4)
+        else:
+            filtros &= Q(vestiarios=vestiarios)
+    
+    if iluminacao:
+        filtros &= Q(iluminacao=(iluminacao == 'sim'))
+    
+    if tipo_gramado:
+        filtros &= Q(tipo_gramado=tipo_gramado)
+
+    resultados = Campo.objects.filter(filtros)
+
+    return render(request, 'home/lista_campos_aprovados.html', {'campos': resultados})
+
+@login_required
+def detalhes_campo(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id)
+    
+    if request.method == 'POST':
+        form = ReservaForm(request.POST)
+        if form.is_valid():
+            reserva = form.save(commit=False)
+            reserva.campo = campo
+            reserva.usuario = request.user
+            if reserva.tipo_reserva == 'hora':
+                duracao = (reserva.hora_fim.hour - reserva.hora_inicio.hour)
+                reserva.valor_total = duracao * campo.preco_por_hora
+            else:
+                reserva.valor_total = campo.preco_por_dia
+            
+            reserva.save()
+            return redirect('meus_pedidos')
+    else:
+        form = ReservaForm()
+    
+    return render(request, 'autenticacao/detalhes_campo.html', {'campo': campo, 'form': form})
+
+
+@login_required
+def aprovar_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva.status = 'aprovado'
+    reserva.save()
+    return redirect('meus_pedidos')
+
+@login_required
+def reserva_detalhes(request, campo_id):
+    campo = get_object_or_404(Campo, id=campo_id)
+    if request.method == 'POST':
+        form = ReservaForm(request.POST)
+        if form.is_valid():
+            reserva = form.save(commit=False)
+            reserva.campo = campo
+            reserva.usuario = request.user
+
+            if reserva.tipo_reserva == 'hora':
+                duracao = (reserva.hora_fim.hour - reserva.hora_inicio.hour)
+                reserva.valor_total = duracao * campo.preco_por_hora
+            else:
+                reserva.valor_total = campo.preco_por_dia
+            
+            reserva.save()
+            return redirect('meus_pedidos')
+    else:
+        form = ReservaForm()
+    
+    return render(request, 'autenticacao/reserva_detalhes.html', {'campo': campo, 'form': form})
+
+@login_required
+def meus_pedidos(request):
+    reservas = Reserva.objects.filter(usuario=request.user).select_related('campo')
+    return render(request, 'autenticacao/meus_pedidos.html', {'reservas': reservas})
+
+@login_required
+def pedidos_recebidos(request):
+    pedidos = Reserva.objects.filter(campo__usuario=request.user, status='pendente').select_related('campo')
+    return render(request, 'autenticacao/pedidos_recebidos.html', {'pedidos': pedidos})
+
+
+@login_required
+def recusar_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva.status = 'recusado'
+    reserva.save()
+    return redirect('pedidos_recebidos')
+
+@login_required
+def deletar_campo_admin(request, campo_id):
+    if not request.user.is_superuser:
+        return redirect('home')  
+
+    campo = get_object_or_404(Campo, id=campo_id)
+    campo.delete()
+    return redirect('admin_gerenciar_campos')

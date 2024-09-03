@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Reserva de Campo</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">CampoFácil</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Inicio</a>
+                </li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'perfil' %}">Meu Perfil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Entrar</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2>Reserva para {{ campo.nome }}</h2>
+        <p><strong>Localização:</strong> {{ campo.localizacao }}</p>
+        <p><strong>Tipo de Gramado:</strong> {{ campo.tipo_gramado }}</p>
+        <p><strong>Capacidade:</strong> {{ campo.capacidade }} pessoas</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="data">Data da Reserva</label>
+                {{ form.data }}
+            </div>
+            <div class="form-group">
+                <label for="tipo_reserva">Tipo de Reserva</label>
+                {{ form.tipo_reserva }}
+            </div>
+            <div class="form-group" id="horario-selecionar">
+                <label for="hora_inicio">Hora de Início</label>
+                {{ form.hora_inicio }}
+            </div>
+            <div class="form-group" id="horario-selecionar">
+                <label for="hora_fim">Hora de Fim</label>
+                {{ form.hora_fim }}
+            </div>
+            <button type="submit" class="btn btn-primary">Reservar</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('id_tipo_reserva').addEventListener('change', function() {
+            if (this.value === 'dia') {
+                document.getElementById('horario-selecionar').style.display = 'none';
+            } else {
+                document.getElementById('horario-selecionar').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

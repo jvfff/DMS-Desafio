@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Campos Disponíveis</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand, .nav-link {
+            font-size: 1.2em;
+        }
+        .container {
+            margin-top: 30px;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            margin-right: 30px;
+            position: fixed;
+            top: 80px;
+            left: 10px; 
+            height: calc(100% - 80px);
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+        }
+        .content {
+            margin-left: 290px; 
+            width: calc(100% - 310px);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .card img {
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card-title {
+            color: #28a745;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .card-text {
+            margin-bottom: 5px;
+        }
+        .btn-custom {
+            background-color: #28a745;
+            color: white;
+            margin-top: 15px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        .btn-custom:hover {
+            background-color: #218838;
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 30px;
+            border-radius: 15px;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">CampoFácil</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="{% url 'home' %}">Inicio <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_campos_aprovados' %}">Campos</a>
+                </li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'perfil' %}">Meu Perfil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Entrar</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="sidebar">
+            <h4>Filtrar Campos</h4>
+            <form method="get" action="{% url 'pesquisa_campos' %}">
+                <div class="form-group">
+                    <label for="vestiarios">Vestiários</label>
+                    <select class="form-control" name="vestiarios" id="vestiarios">
+                        <option value="">Qualquer</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4+">4+</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="iluminacao">Iluminação</label>
+                    <select class="form-control" name="iluminacao" id="iluminacao">
+                        <option value="">Qualquer</option>
+                        <option value="sim">Com Iluminação</option>
+                        <option value="nao">Sem Iluminação</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tipo_gramado">Tipo de Gramado</label>
+                    <select class="form-control" name="tipo_gramado" id="tipo_gramado">
+                        <option value="">Qualquer</option>
+                        <option value="sintetico">Sintético</option>
+                        <option value="grama">Grama</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+            </form>
+        </div>
+
+        <div class="content">
+            <h2 class="text-center mb-4">Campos Disponíveis</h2>
+
+            <form method="get" action="{% url 'pesquisa_campos' %}" class="search-bar">
+                <div class="form-row">
+                    <div class="col-md-10">
+                        <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome ou localização">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-block">Pesquisar</button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="map"></div>
+
+            {% if campos %}
+                <div class="row">
+                    {% for campo in campos %}
+                        <div class="col-md-4">
+                            <div class="card mb-4">
+                                {% if campo.fotos %}
+                                    <img src="{{ campo.fotos.url }}" class="card-img-top" alt="{{ campo.nome }}">
+                                {% else %}
+                                    <img src="URL_DA_IMAGEM_PADRAO_AQUI" class="card-img-top" alt="{{ campo.nome }}">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ campo.nome }}</h5>
+                                    <p class="card-text"><strong>Localização:</strong> {{ campo.localizacao }}</p>
+                                    <p class="card-text"><strong>Tipo de Gramado:</strong> {{ campo.tipo_gramado }}</p>
+                                    <p class="card-text"><strong>Capacidade:</strong> {{ campo.capacidade }} pessoas</p>
+                                    <p class="card-text"><strong>Preço por Hora:</strong> R$ {{ campo.preco_por_hora }}</p>
+                                    <p class="card-text"><strong>Preço por Diária:</strong> R$ {{ campo.preco_por_dia }}</p>
+                                    <form method="get" action="{% url 'reserva_detalhes' campo.id %}">
+                                        <button type="submit" class="btn btn-success btn-custom">Escolher Data e Hora</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="pagination">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if campos.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page={{ campos.previous_page_number }}">Anterior</a></li>
+                            {% endif %}
+                            <li class="page-item disabled"><span class="page-link">{{ campos.number }} de {{ campos.paginator.num_pages }}</span></li>
+                            {% if campos.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ campos.next_page_number }}">Próxima</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            {% else %}
+                <p class="text-center">Não há campos disponíveis no momento.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([-22.9194, -42.8186], 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        {% for campo in campos %}
+            var lat = {{ campo.latitude|default:"null" }};
+            var lng = {{ campo.longitude|default:"null" }};
+        
+            if (lat !== null && lng !== null) {
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup('<strong>{{ campo.nome }}</strong><br>{{ campo.localizacao }}');
+            } else {
+                console.error("Coordenadas ausentes para o campo: {{ campo.nome }}");
+            }
+        {% endfor %}
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

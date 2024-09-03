@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Detalhes do Campo</title>
+</head>
+<body>
+    <div class="container">
+        <h2>{{ campo.nome }}</h2>
+        <img src="{{ campo.fotos.url }}" class="img-fluid" alt="{{ campo.nome }}">
+        <p><strong>Localização:</strong> {{ campo.localizacao }}</p>
+        <p><strong>Tipo de Gramado:</strong> {{ campo.tipo_gramado }}</p>
+        <p><strong>Capacidade:</strong> {{ campo.capacidade }} pessoas</p>
+        <p><strong>Preço por Hora:</strong> R$ {{ campo.preco_por_hora }}</p>
+        <p><strong>Preço por Diária:</strong> R$ {{ campo.preco_por_dia }}</p>
+
+        <h3>Disponibilidade</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="data">Data</label>
+                <input type="date" id="data" name="data" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="horario">Horário</label>
+                <select id="horario" name="horario" class="form-control">
+                    {% for horario in campo.horarios_disponiveis.split(',') %}
+                        <option value="{{ horario }}">{{ horario }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Reservar</button>
+        </form>
+    </div>
+</body>
+</html>

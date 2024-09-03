@@ -40,6 +40,20 @@
         margin-bottom: 30px;
     }
 
+    .sidebar a {
+        color: white;
+        text-decoration: none;
+        display: block;
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    .sidebar a:hover {
+        background-color: #1a252f;
+    }
+
     .main-content {
         padding: 20px;
         background-color: #f8f9fa;
@@ -122,12 +136,24 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'home' %}">Inicio</a>
+                <li class="nav-item active">
+                    <a class="nav-link" href="{% url 'home' %}">Inicio <span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                    <a class="nav-link" href="{% url 'lista_campos_aprovados' %}">Campos</a>
                 </li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'perfil' %}">Meu Perfil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Entrar</a>
+                    </li>
+                {% endif %}
             </ul>
         </div>
     </nav>
@@ -135,10 +161,16 @@
         <div class="row no-gutters">
             <div class="col-md-2 sidebar">
                 <h2>Meu Perfil</h2>
+                <a href="{% url 'perfil' %}">Voltar ao Perfil</a>
+                <a href="{% url 'gerenciar_campos' %}">Gerenciar Campos</a>
+                <a href="{% url 'meus_pedidos' %}">Meus Pedidos</a>
+                <a href="{% url 'pedidos_recebidos' %}">Pedidos Recebidos</a>
+                {% if user.is_superuser %}
+                    <a href="{% url 'admin_gerenciar_campos' %}">Admin</a>
+                {% endif %}
             </div>
             <div class="col-md-10 main-content">
                 <div class="profile-info" id="profile-info">
-                    <h3>Informações do Perfil</h3>
                     <p>
                         <span>Nome: <span id="nome">{{ perfil.nome }}</span></span>
                         <span class="alterar-texto" data-field="nome" data-value="{{ perfil.nome }}">alterar</span>
@@ -191,5 +223,5 @@
             });
         });
     </script>
-    </body>
-    </html>
+</body>
+</html>
