@@ -10,4 +10,4 @@ COPY setup /app/
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "myproject.wsgi:aplication"]
+CMD ["python", "manage.py", "runserver_plus", "--cert-file", "cert.crt", "0.0.0.0:8000"]

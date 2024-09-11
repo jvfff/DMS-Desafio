@@ -54,5 +54,20 @@ class Reserva(models.Model):
     valor_total = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.campo.nome} em {self.data} das {self.hora_inicio} às {self.hora_fim}"
+        if self.hora_inicio and self.hora_fim:
+            return f"{self.usuario.username} - {self.campo.nome} em {self.data} das {self.hora_inicio} às {self.hora_fim}"
+        return f"{self.usuario.username} - {self.campo.nome} em {self.data}"
+
+class Avaliacao(models.Model):
+    campo = models.ForeignKey(Campo, on_delete=models.CASCADE, related_name='avaliacoes')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    estrelas = models.PositiveSmallIntegerField(default=1, choices=[(i, str(i)) for i in range(1, 6)])
+    comentario = models.TextField(blank=True, null=True)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.usuario.username} - {self.campo.nome} ({self.estrelas} estrelas)'
+    
+    class Meta:
+        unique_together = ('campo', 'usuario')  
 

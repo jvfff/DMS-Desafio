@@ -155,8 +155,12 @@
                                 <div class="field-status">
                                     {{ reserva.campo.nome }} - Data: {{ reserva.data }} - Das {{ reserva.hora_inicio }} às {{ reserva.hora_fim }} - Valor: R$ {{ reserva.valor_total }} - Status: {{ reserva.status }}
                                 </div>
+                                {% if reserva.status == 'aprovado' %}
+                                <div class="field-actions">
+                                    <a href="{% url 'avaliar_campo' reserva.campo.id %}" class="btn btn-custom">Avaliar</a>
+                                </div>
+                                {% endif %}
                             </li>
-                            
                             {% endfor %}
                         </ul>
                         {% else %}

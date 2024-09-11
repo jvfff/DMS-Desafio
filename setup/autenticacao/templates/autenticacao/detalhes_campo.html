@@ -26,8 +26,8 @@
             <div class="form-group">
                 <label for="horario">Horário</label>
                 <select id="horario" name="horario" class="form-control">
-                    {% for horario in campo.horarios_disponiveis.split(',') %}
-                        <option value="{{ horario }}">{{ horario }}</option>
+                    {% for horario in horarios_disponiveis %}
+                        <p>{{ horario }}</p>
                     {% endfor %}
                 </select>
             </div>

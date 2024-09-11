@@ -190,6 +190,7 @@
                             <li class="list-group-item">
                                 <span>{{ campo.nome }} - {{ campo.localizacao }}</span>
                                 <div class="field-actions">
+                                    <a href="{% url 'editar_campo' campo.id %}" class="btn btn-warning btn-sm">Editar</a>
                                     <a href="{% url 'deletar_campo_admin' campo.id %}" class="btn btn-danger btn-sm">Excluir</a>
                                 </div>
                             </li>
@@ -200,6 +201,25 @@
                         {% endif %}
                     </div>
                 </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Gerar Relatórios</h5>
+                        <a href="{% url 'gerar_relatorio_pdf' %}" class="btn btn-info">Gerar Relatório PDF</a>
+                        <a href="{% url 'gerar_relatorio_csv' %}" class="btn btn-success">Gerar Relatório CSV</a>
+                        <p>Ou selecione um campo específico:</p>
+                        <ul class="list-group">
+                            {% for campo in campos_aprovados %}
+                            <li class="list-group-item">
+                                <span>{{ campo.nome }}</span>
+                                <a href="{% url 'gerar_relatorio_pdf_campo' campo.id %}" class="btn btn-info btn-sm">PDF</a>
+                                <a href="{% url 'gerar_relatorio_csv_campo' campo.id %}" class="btn btn-success btn-sm">CSV</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>

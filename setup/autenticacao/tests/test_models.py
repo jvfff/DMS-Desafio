@@ -1,63 +1,84 @@
 from django.test import TestCase
+from autenticacao.models import UserProfile, Campo, Reserva, Avaliacao
 from django.contrib.auth.models import User
-from autenticacao.models import UserProfile, Campo, Reserva
+from django.utils import timezone
 
-class UserProfileModelTest(TestCase):
-    
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='12345')
-    
-    def test_userprofile_creation(self):
-        user_profile = UserProfile.objects.create(user=self.user)
-        self.assertEqual(user_profile.user.username, 'testuser')
-        self.assertFalse(user_profile.is_verified)
-        self.assertEqual(str(user_profile), 'testuser')
+class UserProfileTest(TestCase):
+    def test_user_profile_creation(self):
+        user = User.objects.create_user(username='testuser', password='12345')
+        profile = UserProfile.objects.create(user=user, nome='Test User', cpf='123.456.789-00')
+        self.assertEqual(str(profile), 'testuser')
+        self.assertEqual(profile.nome, 'Test User')
+        self.assertEqual(profile.cpf, '123.456.789-00')
 
-class CampoModelTest(TestCase):
-
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='12345')
-    
+class CampoTest(TestCase):
     def test_campo_creation(self):
+        user = User.objects.create_user(username='testuser', password='12345')
         campo = Campo.objects.create(
             nome='Campo Teste',
-            localizacao='Local Teste',
-            usuario=self.user,
+            localizacao='Teste City',
+            usuario=user,
             tipo_gramado='natural',
             iluminacao=True,
-            vestiarios=2,
-            largura=30.00,
-            comprimento=50.00,
+            vestiarios=4,
+            largura=40,
+            comprimento=60,
             capacidade=100,
-            preco_por_hora=100.00
+            preco_por_hora=100.00,
+            preco_por_dia=500.00,
         )
         self.assertEqual(str(campo), 'Campo Teste')
+        self.assertEqual(campo.tipo_gramado, 'natural')
+        self.assertTrue(campo.iluminacao)
 
-class ReservaModelTest(TestCase):
-
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='12345')
-        self.campo = Campo.objects.create(
+class ReservaTest(TestCase):
+    def test_reserva_creation(self):
+        user = User.objects.create_user(username='testuser', password='12345')
+        campo = Campo.objects.create(
             nome='Campo Teste',
-            localizacao='Local Teste',
-            usuario=self.user,
+            localizacao='Teste City',
+            usuario=user,
             tipo_gramado='natural',
             iluminacao=True,
-            vestiarios=2,
-            largura=30.00,
-            comprimento=50.00,
+            vestiarios=4,
+            largura=40,
+            comprimento=60,
             capacidade=100,
-            preco_por_hora=100.00
+            preco_por_hora=100.00,
+            preco_por_dia=500.00,
         )
-
-    def test_reserva_creation(self):
         reserva = Reserva.objects.create(
-            campo=self.campo,
-            usuario=self.user,
-            data='2024-08-20',
+            campo=campo,
+            usuario=user,
+            data=timezone.now(),
             tipo_reserva='hora',
-            hora_inicio='10:00',
-            hora_fim='12:00',
+            hora_inicio='09:00',
+            hora_fim='11:00',
             valor_total=200.00
         )
-        self.assertEqual(str(reserva), 'testuser - Campo Teste em 2024-08-20 das 10:00 às 12:00') 
+        self.assertEqual(str(reserva), f'{user.username} - {campo.nome} em {reserva.data} das {reserva.hora_inicio} às {reserva.hora_fim}')
+
+
+class AvaliacaoTest(TestCase):
+    def test_avaliacao_creation(self):
+        user = User.objects.create_user(username='testuser', password='12345')
+        campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            usuario=user,
+            tipo_gramado='natural',
+            iluminacao=True,
+            vestiarios=4,
+            largura=40,
+            comprimento=60,
+            capacidade=100,
+            preco_por_hora=100.00,
+            preco_por_dia=500.00,
+        )
+        avaliacao = Avaliacao.objects.create(
+            campo=campo,
+            usuario=user,
+            estrelas=5,
+            comentario='Ótimo campo!'
+        )
+        self.assertEqual(str(avaliacao), f'{user.username} - {campo.nome} (5 estrelas)')

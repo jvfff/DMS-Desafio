@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Avaliar Campo</title>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Avaliar {{ campo.nome }}</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="estrelas">Avaliação (1-5 estrelas):</label>
+                {{ form.estrelas }}
+            </div>
+            <div class="form-group">
+                <label for="comentario">Comentário:</label>
+                {{ form.comentario }}
+            </div>
+            <button type="submit" class="btn btn-success">Enviar Avaliação</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -23,37 +23,74 @@
         </ul>
     </div>
 </nav>
+
 <div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
     <div class="card shadow-lg p-4" style="max-width: 400px; width: 100%;">
         <h2 class="text-center text-primary mb-4">Registrar</h2>
+        
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
                 <label for="id_username">Nome de usuário</label>
                 <input type="text" name="username" class="form-control" id="id_username">
+                {% if form.username.errors %}
+                    <div class="text-danger">
+                        {% for error in form.username.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
+
             <div class="form-group">
                 <label for="id_email">Email</label>
                 <input type="email" name="email" class="form-control" id="id_email">
+                {% if form.email.errors %}
+                    <div class="text-danger">
+                        {% for error in form.email.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
+
             <div class="form-group">
                 <label for="id_password1">Senha</label>
                 <input type="password" name="password1" class="form-control" id="id_password1">
+                {% if form.password1.errors %}
+                    <div class="text-danger">
+                        {% for error in form.password1.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
+
             <div class="form-group">
                 <label for="id_password2">Confirme a Senha</label>
                 <input type="password" name="password2" class="form-control" id="id_password2">
+                {% if form.password2.errors %}
+                    <div class="text-danger">
+                        {% for error in form.password2.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
+
             <button type="submit" class="btn btn-primary btn-block">Registrar</button>
         </form>
+
         <div class="text-center mt-3">
             <p>Já tem uma conta? <a href="{% url 'login' %}" class="text-primary">Faça login aqui</a></p>
         </div>
     </div>
 </div>
+
 <footer class="bg-dark text-white text-center py-3">
     <p class="footer-text mb-0">&copy; 2024 CampoFácil. Todos os direitos reservados.</p>
 </footer>
+
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

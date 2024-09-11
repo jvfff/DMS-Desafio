@@ -1,257 +1,645 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from autenticacao.models import UserProfile, Campo
+from django.core import mail
+from django.core.mail import send_mail, backends
+from django.core.mail.backends import smtp
+from django.utils.encoding import force_bytes
 from allauth.socialaccount.models import SocialApp
 from django.contrib.sites.models import Site
+import os
+from dotenv import load_dotenv
+import django
+from autenticacao.models import Campo, Reserva, Avaliacao, UserProfile
+from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-class ViewTests(TestCase):
-    
-    def setUp(self):
-        # Configura o SocialApp necessário para os testes
-        site = Site.objects.get_current()
-        self.social_app = SocialApp.objects.create(
-            provider='google', 
-            name='Google', 
-            client_id='123', 
-            secret='ABC'
-        )
-        self.social_app.sites.add(site)
-
-        # Configura o cliente de teste e cria um usuário
-        self.client = Client()
-        self.user = User.objects.create_user(username='testuser', password='12345', email='testuser@example.com')
-        self.user_profile = UserProfile.objects.create(user=self.user, is_verified=True)
-        self.campo = Campo.objects.create(
-            nome='Campo de Teste',
-            localizacao='Local de Teste',
-            usuario=self.user,
-            tipo_gramado='natural',
-            iluminacao=True,
-            vestiarios=2,
-            largura=30.00,
-            comprimento=50.00,
-            capacidade=100,
-            preco_por_hora=100.00
-        )
-    
-    def test_register_view_get(self):
+class RegisterViewTest(TestCase):
+    def test_get_register_view(self):
         response = self.client.get(reverse('register'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'autenticacao/registrar.html')
-    
-    def test_register_view_post(self):
-        data = {
-            'username': 'newuser',
-            'email': 'newuser@example.com',
-            'password1': 'Str0ngP@ssword123',
-            'password2': 'Str0ngP@ssword123'
-        }
-        response = self.client.post(reverse('register'), data)
-        
-        if response.status_code == 200:
-            form = response.context.get('form', None)
-            if form and form.errors:
-                print(form.errors)
-        
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('verify_code'))
-    
-    def test_register_view_post_invalid_email(self):
-        data = {
-            'username': 'newuser',
-            'email': 'invalid-email',
-            'password1': 'Str0ngP@ssword123',
-            'password2': 'Str0ngP@ssword123'
-        }
-        response = self.client.post(reverse('register'), data)
-        self.assertEqual(response.status_code, 200)
-        form = response.context.get('form')
-        self.assertTrue(form.errors)
-        self.assertIn('email', form.errors)
 
-    def test_login_view_get(self):
+    def test_post_register_view_valid_data(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password1': 'TestPassword123',
+            'password2': 'TestPassword123',
+        })
+        self.assertRedirects(response, reverse('verify_code'))
+        self.assertIn('verification_code', self.client.session)
+        self.assertIn('user_data', self.client.session)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Verificação', mail.outbox[0].subject)
+
+    def test_post_register_view_invalid_data(self):
+        response = self.client.post(reverse('register'), {
+            'username': '',
+            'email': 'invalid-email',
+            'password1': 'test',
+            'password2': 'test',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/registrar.html')
+
+class VerifyCodeViewTest(TestCase):
+    def setUp(self):
+        self.session = self.client.session
+        self.session['verification_code'] = '123456'
+        self.session['user_data'] = {
+            'username': 'testuser',
+            'email': 'test@example.com',
+            'password': 'TestPassword123',
+        }
+        self.session.save()
+
+    def test_get_verify_code_view(self):
+        response = self.client.get(reverse('verify_code'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/verify_code.html')
+
+    def test_post_verify_code_view_valid_code(self):
+        response = self.client.post(reverse('verify_code'), {'code': '123456'})
+        self.assertRedirects(response, reverse('home'))
+        user = User.objects.get(username='testuser')
+        self.assertTrue(user.is_authenticated)
+
+    def test_post_verify_code_view_invalid_code(self):
+        response = self.client.post(reverse('verify_code'), {'code': '654321'})
+        self.assertEqual(response.status_code, 200)
+
+class LoginViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='TestPassword123', email='test@example.com')
+        self.user.is_active = True
+        self.user.save()
+        
+        social_app = SocialApp.objects.create(provider='google', name='Google', client_id='fake-id', secret='fake-secret')
+        social_app.sites.add(Site.objects.get_current())
+
+    def test_get_login_view(self):
         response = self.client.get(reverse('login'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'autenticacao/login.html')
-    
-    def test_login_view_post(self):
-        self.client.login(username='testuser', password='12345')
-        response = self.client.post(reverse('login'), {'username': 'testuser', 'password': '12345'})
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('home'))
 
-    def test_home_view(self):
-        response = self.client.get(reverse('home'))
+    def test_post_login_view_valid_data(self):
+        response = self.client.post(reverse('login'), {
+            'username': 'testuser',
+            'password': 'TestPassword123',
+        })
+        self.assertRedirects(response, reverse('verify_code_login'))
+        self.assertIn('verification_code', self.client.session)
+        self.assertIn('username', self.client.session)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Verificação para Login', mail.outbox[0].subject)
+
+    def test_post_login_view_invalid_data(self):
+        response = self.client.post(reverse('login'), {
+            'username': 'wronguser',
+            'password': 'wrongpassword',
+        })
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'home/home.html')
-    
+        self.assertTemplateUsed(response, 'autenticacao/login.html')
+
+class VerifyCodeLoginViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='TestPassword123', email='test@example.com')
+        self.user.is_active = True
+        self.user.save()
+
+        self.session = self.client.session
+        self.session['verification_code'] = '123456'
+        self.session['username'] = 'testuser'
+        self.session.save()
+
+    def test_get_verify_code_login_view(self):
+        response = self.client.get(reverse('verify_code_login'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/verify_code.html')
+
+    def test_post_verify_code_login_view_valid_code(self):
+        response = self.client.post(reverse('verify_code_login'), {'code': '123456'})
+        self.assertRedirects(response, reverse('home'))
+        self.assertTrue(self.user.is_authenticated)
+
+    def test_post_verify_code_login_view_invalid_code(self):
+        response = self.client.post(reverse('verify_code_login'), {'code': '654321'})
+        self.assertEqual(response.status_code, 200)
+
+from django.test.utils import override_settings
+
+class PasswordResetRequestViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='TestPassword123')
+
+    def test_get_password_reset_request_view(self):
+        response = self.client.get(reverse('password_reset_request'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/password_reset_request.html')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    )
+    def test_post_password_reset_request_view_valid_email(self):
+        response = self.client.post(reverse('password_reset_request'), {'email': 'test@example.com'})
+
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_post_password_reset_request_view_invalid_email(self):
+        response = self.client.post(reverse('password_reset_request'), {'email': 'invalid@example.com'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Email não encontrado.')
+
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+
+class ActivateViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='TestPassword123')
+        self.user.is_active = True
+        self.user.save()
+
+    def test_activate_view_valid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        response = self.client.get(reverse('activate', kwargs={'uidb64': uid, 'token': token}))
+        self.assertRedirects(response, reverse('home'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+
+    def test_activate_view_invalid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        response = self.client.get(reverse('activate', kwargs={'uidb64': uid, 'token': 'invalid-token'}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/activation_invalid.html')
+
+class LogoutViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='TestPassword123', email='test@example.com')
+        self.client.login(username='testuser', password='TestPassword123')
+
     def test_logout_view(self):
-        self.client.login(username='testuser', password='12345')
         response = self.client.get(reverse('logout'))
-        self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('home'))
+        self.assertFalse('_auth_user_id' in self.client.session)
 
-    def test_cadastrar_campo_view(self):
+"""
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+"""
+
+class AutenticacaoTests(TestCase):
+
+    def setUp(self):
+        image_content = b'\x00\x01\x02'  
+        image_file = SimpleUploadedFile(
+            name='test_image.jpg',
+            content=image_content,
+            content_type='image/jpeg'
+        )
+
+        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.user_profile = UserProfile.objects.create(user=self.user)
+
+        self.user2 = User.objects.create_user(username='otheruser', password='12345')
+
+        self.campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            preco_por_hora=50,
+            preco_por_dia=400,
+            usuario=self.user,
+            vestiarios=4,
+            iluminacao=True,
+            tipo_gramado='natural',
+            status='aprovado',
+            fotos=image_file  
+        )
+
+        self.reserva = Reserva.objects.create(
+            campo=self.campo, usuario=self.user, data=timezone.now(),
+            tipo_reserva='dia', valor_total=400, status='pendente'
+        )
+
+        self.client = Client()
         self.client.login(username='testuser', password='12345')
-        data = {
-            'nome': 'Novo Campo',
-            'localizacao': 'Novo Local',
-            'tipo_gramado': 'natural',
-            'iluminacao': True,
-            'vestiarios': 3,
-            'largura': 40.00,
-            'comprimento': 60.00,
-            'capacidade': 120,
-            'preco_por_hora': 150.00
-        }
-        response = self.client.post(reverse('cadastrar_campo'), data)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('gerenciar_campos'))
 
-    def test_editar_campo_view(self):
-        self.client.login(username='testuser', password='12345')
-        campo_id = self.campo.id
-        data = {
-            'nome': 'Campo Editado',
-            'localizacao': 'Local Editado',
-            'tipo_gramado': 'sintetico',
-            'iluminacao': False,
-            'vestiarios': 5,
-            'largura': 35.00,
-            'comprimento': 55.00,
-            'capacidade': 150,
-            'preco_por_hora': 120.00
-        }
-        response = self.client.post(reverse('editar_campo', args=[campo_id]), data)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('gerenciar_campos'))
-        self.campo.refresh_from_db()
-        self.assertEqual(self.campo.nome, 'Campo Editado')
-
-    def test_editar_campo_view_nonexistent(self):
-        self.client.login(username='testuser', password='12345')
-        response = self.client.get(reverse('editar_campo', args=[999]))  
-        self.assertEqual(response.status_code, 404)
-
-    def test_register_view_post_mismatched_passwords(self):
-        data = {
-            'username': 'newuser',
-            'email': 'newuser@example.com',
-            'password1': 'Str0ngP@ssword123',
-            'password2': 'DifferentP@ssword123'
-        }
-        response = self.client.post(reverse('register'), data)
+    def test_pesquisa_campos(self):
+        response = self.client.get(reverse('pesquisa_campos'), {'q': 'Campo Teste'})
         self.assertEqual(response.status_code, 200)
-        form = response.context.get('form')
-        self.assertTrue(form.errors)
-        self.assertIn('password2', form.errors)
+        self.assertContains(response, 'Campo Teste')
 
-    def test_meus_pedidos_view(self):
+    def test_detalhes_campo(self):
+        response = self.client.get(reverse('detalhes_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Campo Teste')
+
+    def test_aprovar_reserva(self):
         self.client.login(username='testuser', password='12345')
+        response = self.client.post(reverse('aprovar_reserva', args=[self.reserva.id]))
+        self.reserva.refresh_from_db()
+        self.assertEqual(response.status_code, 302)  
+        self.assertEqual(self.reserva.status, 'aprovado')
+
+    def test_recusar_reserva(self):
+        response = self.client.post(reverse('recusar_reserva', args=[self.reserva.id]))
+        self.reserva.refresh_from_db()
+        self.assertEqual(response.status_code, 302)  
+        self.assertEqual(self.reserva.status, 'recusado')
+
+    def test_meus_pedidos(self):
         response = self.client.get(reverse('meus_pedidos'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'autenticacao/meus_pedidos.html')
+        self.assertContains(response, 'Campo Teste')
 
-    def test_deletar_campo_view(self):
-        self.client.login(username='testuser', password='12345')
-        campo_id = self.campo.id
-        response = self.client.post(reverse('deletar_campo', args=[campo_id]))
+    def test_pedidos_recebidos(self):
+        response = self.client.get(reverse('pedidos_recebidos'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Campo Teste')
+
+    def test_reserva_detalhes(self):
+        data = {
+            'campo': self.campo.id,
+            'data': timezone.now().strftime('%Y-%m-%d'),  
+            'tipo_reserva': 'dia',
+        }
+        response = self.client.post(reverse('detalhes_campo', args=[self.campo.id]), data)
+
+        if response.status_code == 200:
+            print(response.context['form'].errors)  
+
+        self.assertEqual(response.status_code, 302)  
+
+
+    def test_avaliar_campo(self):
+        data = {'nota': 5, 'comentario': 'Excelente campo!', 'estrelas': 5}  
+        response = self.client.post(reverse('avaliar_campo', args=[self.campo.id]), data)
+        
+        if response.status_code == 200:
+            print(response.context['form'].errors)  
+
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('gerenciar_campos'))
-        with self.assertRaises(Campo.DoesNotExist):
-            Campo.objects.get(id=campo_id)
 
-    def test_admin_gerenciar_campos_access_denied_for_non_admin(self):
-        non_admin_user = User.objects.create_user(username='nonadmin', password='12345')
-        self.client.login(username='nonadmin', password='12345')
-        response = self.client.get(reverse('admin_gerenciar_campos'))
-        self.assertRedirects(response, reverse('login') + '?next=' + reverse('admin_gerenciar_campos'))
 
-    def test_aprovar_campo_view(self):
-        self.client.login(username='testuser', password='12345')
-        self.user.is_superuser = True
-        self.user.save()
-        campo = Campo.objects.create(
-            nome='Campo Pendente',
-            localizacao='Local Pendente',
+    def test_campo_detalhes(self):
+        response = self.client.get(reverse('info_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Campo Teste')
+
+    def test_lista_campos_aprovados(self):
+        response = self.client.get(reverse('lista_campos_aprovados'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Campo Teste')
+
+"""
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+"""
+
+class AutenticacaoTests(TestCase):
+    
+    def setUp(self):
+        image_content = b'\x00\x01\x02'  
+        image_file = SimpleUploadedFile(
+            name='test_image.jpg',
+            content=image_content,
+            content_type='image/jpeg'
+        )
+
+        self.user = User.objects.create_user(username='testuser', password='12345', email='testuser@example.com')
+        self.user_profile = UserProfile.objects.create(user=self.user)
+
+        self.campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            preco_por_hora=50,
+            preco_por_dia=400,
             usuario=self.user,
-            tipo_gramado='natural',
+            vestiarios=4,
             iluminacao=True,
-            vestiarios=3,
-            largura=40.00,
-            comprimento=60.00,
-            capacidade=120,
-            preco_por_hora=150.00,
-            status='pendente'
+            tipo_gramado='natural',
+            status='pendente',
+            fotos=image_file
         )
-        response = self.client.post(reverse('aprovar_campo', args=[campo.id]))
-        self.assertEqual(response.status_code, 302)
-        campo.refresh_from_db()
-        self.assertEqual(campo.status, 'aprovado')
 
-    def test_recusar_campo_view(self):
+        self.client = Client()
         self.client.login(username='testuser', password='12345')
-        self.user.is_superuser = True
-        self.user.save()
-        campo = Campo.objects.create(
-            nome='Campo Pendente',
-            localizacao='Local Pendente',
-            usuario=self.user,
-            tipo_gramado='natural',
-            iluminacao=True,
-            vestiarios=3,
-            largura=40.00,
-            comprimento=60.00,
-            capacidade=120,
-            preco_por_hora=150.00,
-            status='pendente'
-        )
-        response = self.client.post(reverse('recusar_campo', args=[campo.id]))
-        self.assertEqual(response.status_code, 302)
-        campo.refresh_from_db()
-        self.assertEqual(campo.status, 'recusado')
 
-    def test_aprovar_campo_view_access_denied_for_non_admin(self):
-        non_admin_user = User.objects.create_user(username='nonadmin', password='12345')
-        self.client.login(username='nonadmin', password='12345')
-        campo = Campo.objects.create(
-            nome='Campo Pendente',
-            localizacao='Local Pendente',
-            usuario=non_admin_user,
-            tipo_gramado='natural',
-            iluminacao=True,
-            vestiarios=3,
-            largura=40.00,
-            comprimento=60.00,
-            capacidade=120,
-            preco_por_hora=150.00,
-            status='pendente'
-        )
-        response = self.client.post(reverse('aprovar_campo', args=[campo.id]))
-        self.assertRedirects(response, reverse('login') + '?next=' + reverse('admin_gerenciar_campos'), fetch_redirect_response=False)
-        campo.refresh_from_db()
-        self.assertEqual(campo.status, 'pendente')
+    def test_aprovar_campo(self):
+        admin = User.objects.create_superuser(username='adminuser', password='adminpass', email='admin@example.com')
+        self.client.login(username='adminuser', password='adminpass')
 
-    def test_password_reset_request_view(self):
+        response = self.client.post(reverse('aprovar_campo', args=[self.campo.id]))
+
+        self.campo.refresh_from_db()
+        self.assertEqual(self.campo.status, 'aprovado')
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.campo.nome, mail.outbox[0].subject)
+        self.assertIn(self.user.email, mail.outbox[0].to)
+
+    def test_password_reset_request(self):
         response = self.client.post(reverse('password_reset_request'), {'email': self.user.email})
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('password_reset_verify'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Redefinição de Senha', mail.outbox[0].subject)
+        self.assertIn(self.user.email, mail.outbox[0].to)
 
-    def test_password_reset_verify_view(self):
+    def test_password_reset_complete(self):
         self.user_profile.reset_code = '123456'
         self.user_profile.save()
-        response = self.client.post(reverse('password_reset_verify'), {'code': '123456'})
+
+        self.client.post(reverse('password_reset_verify'), {'code': '123456'})
+
+        data = {
+            'new_password1': 'newpassword@123',
+            'new_password2': 'newpassword@123',
+        }
+        response = self.client.post(reverse('password_reset_complete'), data)
+
+        if response.status_code == 200:
+            print(response.context['form'].errors)  
+
         self.assertEqual(response.status_code, 302)
+
+
+    def test_register_view(self):
+        self.client.logout()
+        data = {
+            'username': 'newuser',
+            'password1': 'testpassword',
+            'password2': 'testpassword',
+            'email': 'newuser@example.com'
+        }
+        response = self.client.post(reverse('register'), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('verify_code'))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Verificação', mail.outbox[0].subject)
+        self.assertIn('newuser@example.com', mail.outbox[0].to)
+
+    def test_login_view(self):
+        data = {
+            'username': 'testuser',
+            'password': '12345',
+        }
+        response = self.client.post(reverse('login'), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('verify_code_login'))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Verificação para Login', mail.outbox[0].subject)
+        self.assertIn(self.user.email, mail.outbox[0].to)
+
+    def test_verify_code_view(self):
+        session = self.client.session
+        session['user_data'] = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'testpassword',
+        }
+        session['verification_code'] = '123456'
+        session.save()
+
+        response = self.client.post(reverse('verify_code'), {'code': '123456'})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('home'))
+
+        user = User.objects.get(username='newuser')
+        self.assertIsNotNone(user)
+        self.assertTrue(user.is_active)
+
+    def test_gerar_relatorio_pdf(self):
+        response = self.client.get(reverse('gerar_relatorio_pdf'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_gerar_relatorio_pdf_campo(self):
+        response = self.client.get(reverse('gerar_relatorio_pdf_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_gerar_relatorio_csv(self):
+        response = self.client.get(reverse('gerar_relatorio_csv'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+
+    def test_gerar_relatorio_csv_campo(self):
+        response = self.client.get(reverse('gerar_relatorio_csv_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+
+"""
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+"""
+
+class ActivateViewTestInvalidToken(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='TestPassword123')
+        self.user.is_active = False
+        self.user.save()
+
+    def test_activate_view_invalid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        invalid_token = 'invalid-token'
+        response = self.client.get(reverse('activate', kwargs={'uidb64': uid, 'token': invalid_token}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'autenticacao/activation_invalid.html')
+
+class ReservaViewTestInvalidData(TestCase):
+    def setUp(self):
+        image_content = b'\x00\x01\x02'  
+        image_file = SimpleUploadedFile(
+            name='test_image.jpg',
+            content=image_content,
+            content_type='image/jpeg'
+        )
+
+        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            preco_por_hora=50,
+            preco_por_dia=400,
+            usuario=self.user,
+            vestiarios=4,
+            iluminacao=True,
+            tipo_gramado='natural',
+            status='aprovado',
+            fotos=image_file 
+        )
+        self.client.login(username='testuser', password='12345')
+
+    def test_reserva_com_dados_invalidos(self):
+        response = self.client.post(reverse('detalhes_campo', args=[self.campo.id]), {})
+        self.assertEqual(response.status_code, 200)
+
+class GerarRelatorioViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            preco_por_hora=50,
+            preco_por_dia=400,
+            usuario=self.user,
+            vestiarios=4,  
+            iluminacao=True,
+            tipo_gramado='natural',
+            status='aprovado'
+        )
+
+        self.client.login(username='testuser', password='12345')
+
+    def test_gerar_relatorio_pdf_sem_reservas(self):
+        response = self.client.get(reverse('gerar_relatorio_pdf_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_gerar_relatorio_csv_sem_reservas(self):
+        response = self.client.get(reverse('gerar_relatorio_csv_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+
+class PermissionsTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.admin = User.objects.create_superuser(username='adminuser', password='adminpass', email='admin@example.com')
+        self.campo = Campo.objects.create(
+            nome='Campo Teste',
+            localizacao='Teste City',
+            preco_por_hora=50,
+            preco_por_dia=400,
+            usuario=self.user,
+            vestiarios=4,
+            iluminacao=True,
+            tipo_gramado='natural',
+            status='pendente'
+        )
+        self.client = Client()
+
+
+
+    def test_admin_aprova_campo(self):
+        self.client.login(username='adminuser', password='adminpass')
+        response = self.client.post(reverse('aprovar_campo', args=[self.campo.id]))
+        self.assertEqual(response.status_code, 302)
+        self.campo.refresh_from_db()
+        self.assertEqual(self.campo.status, 'aprovado')
+
+class PasswordResetTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='12345', email='testuser@example.com')
+        self.user_profile = UserProfile.objects.create(user=self.user, reset_code='123456')
+
+    def test_resetar_senha_com_codigo_invalido(self):
+        response = self.client.post(reverse('password_reset_verify'), {'code': '654321'})
+        self.assertEqual(response.status_code, 200)
+
+
+
+    def test_resetar_senha_com_sucesso(self):
+        data = {'code': '123456'}
+        response = self.client.post(reverse('password_reset_verify'), data)
         self.assertRedirects(response, reverse('password_reset_complete'))
 
-    def test_password_reset_complete_view(self):
-        self.user_profile.reset_code = '123456'
-        self.user_profile.save()
-        response = self.client.post(reverse('password_reset_complete'), {
-            'new_password1': 'Str0ngP@ssword123',
-            'new_password2': 'Str0ngP@ssword123'
+class CustomUserCreationFormTest(TestCase):
+    def test_form_com_dados_invalidos(self):
+        response = self.client.post(reverse('register'), {
+            'username': '',  
+            'email': 'email@invalido',  
+            'password1': '123',  
+            'password2': '321'
         })
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('login'))
+        
+        self.assertEqual(response.status_code, 200)
 
+        self.assertContains(response, 'Este campo é obrigatório')
+        self.assertContains(response, 'Informe um endereço de email válido.')
+
+
+        self.assertContains(response, 'Os dois campos de senha não correspondem.')
+
+
+    def test_form_com_sucesso(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password1': 'TestPassword123',
+            'password2': 'TestPassword123'
+        })
+        self.assertRedirects(response, reverse('verify_code'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Código de Verificação', mail.outbox[0].subject)

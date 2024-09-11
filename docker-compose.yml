@@ -3,9 +3,9 @@ version: '3'
 services:
   web:
     build: .
-    command: python setup/manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver_plus --cert-file cert.crt 0.0.0.0:8000
     volumes:
-      - .:/app
+      - ./setup:/app
     ports:
       - "8000:8000"
     depends_on:

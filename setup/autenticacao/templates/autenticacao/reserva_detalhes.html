@@ -19,6 +19,9 @@
                 </li>
                 {% if user.is_authenticated %}
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'lista_campos_aprovados' %}">Campos</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'perfil' %}">Meu Perfil</a>
                     </li>
                     <li class="nav-item">
@@ -41,24 +44,31 @@
 
         <form method="post">
             {% csrf_token %}
-            <div class="form-group">
-                <label for="data">Data da Reserva</label>
-                {{ form.data }}
-            </div>
-            <div class="form-group">
-                <label for="tipo_reserva">Tipo de Reserva</label>
-                {{ form.tipo_reserva }}
-            </div>
-            <div class="form-group" id="horario-selecionar">
-                <label for="hora_inicio">Hora de Início</label>
-                {{ form.hora_inicio }}
-            </div>
-            <div class="form-group" id="horario-selecionar">
-                <label for="hora_fim">Hora de Fim</label>
-                {{ form.hora_fim }}
-            </div>
+            {{ form.as_p }}
             <button type="submit" class="btn btn-primary">Reservar</button>
         </form>
+
+        <hr> 
+
+        <h3>Avaliações</h3>
+        <div>
+            {% for avaliacao in avaliacoes %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <strong>{{ avaliacao.usuario.username }}</strong> 
+                        deu {{ avaliacao.estrelas }} estrelas
+                        <p>{{ avaliacao.comentario }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p>Este campo ainda não foi avaliado.</p>
+            {% endfor %}
+        </div>
+        
+        
+        
+
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

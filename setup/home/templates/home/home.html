@@ -187,10 +187,10 @@
                 <li class="nav-item active">
                     <a class="nav-link" href="{% url 'home' %}">Inicio <span class="sr-only">(current)</span></a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_campos_aprovados' %}">Campos</a>
-                </li>
                 {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'lista_campos_aprovados' %}">Campos</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'perfil' %}">Meu Perfil</a>
                     </li>

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth.models import User
-from .models import UserProfile, Campo, Reserva
+from .models import UserProfile, Campo, Reserva, Avaliacao
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -45,7 +45,7 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['password2'].help_text = None
 
 class VerificationForm(forms.Form):
-    code = forms.CharField(max_length=6)
+    code = forms.CharField(max_length=6, min_length=6, required=True)
 
 class PasswordResetRequestForm(forms.Form):
     email = forms.EmailField(label="Email")
@@ -111,3 +111,15 @@ class ReservaForm(forms.ModelForm):
         super(ReservaForm, self).__init__(*args, **kwargs)
         self.fields['hora_inicio'].required = False
         self.fields['hora_fim'].required = False
+
+class AvaliacaoForm(forms.ModelForm):
+    class Meta:
+        model = Avaliacao
+        fields = ['estrelas', 'comentario']
+        labels = {
+            'estrelas': 'Avaliação (1-5 estrelas)',
+            'comentario': 'Comentário',
+        }
+        widgets = {
+            'estrelas': forms.RadioSelect(),  
+        }

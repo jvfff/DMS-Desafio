@@ -3,13 +3,15 @@ from . import views
 from .views import (
     RegisterView, VerifyCodeView, LoginView, HomeView, LogoutView, 
     PasswordResetRequestView, PasswordResetVerifyView, PasswordResetCompleteView, 
-    perfil_view, info_campo, reserva_detalhes, meus_pedidos, pedidos_recebidos, aprovar_reserva, recusar_reserva, deletar_campo_admin
+    perfil_view, info_campo, reserva_detalhes, meus_pedidos, pedidos_recebidos, aprovar_reserva, recusar_reserva, deletar_campo_admin, gerar_relatorio_pdf, gerar_relatorio_csv, gerar_relatorio_csv_campo, gerar_relatorio_pdf_campo, activate, VerifyCodeLoginView
 )
 
 urlpatterns = [
     path('registrar/', RegisterView.as_view(), name='register'),
     path('verify_code/', VerifyCodeView.as_view(), name='verify_code'),
+    path('verify_code_login/', VerifyCodeLoginView.as_view(), name='verify_code_login'),
     path('login/', LoginView.as_view(), name='login'),
+    path('activate/<uidb64>/<token>/', views.activate, name='activate'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('password_reset/', views.PasswordResetRequestView.as_view(), name='password_reset'),
     path('password_reset_request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
@@ -34,4 +36,9 @@ urlpatterns = [
     path('aprovar-reserva/<int:reserva_id>/', aprovar_reserva, name='aprovar_reserva'),
     path('recusar-reserva/<int:reserva_id>/', recusar_reserva, name='recusar_reserva'),
     path('admin/deletar-campo/<int:campo_id>/', deletar_campo_admin, name='deletar_campo_admin'),
+    path('campo/avaliar/<int:campo_id>/', views.avaliar_campo, name='avaliar_campo'),
+    path('gerar_relatorio_pdf/', gerar_relatorio_pdf, name='gerar_relatorio_pdf'),
+    path('gerar_relatorio_csv/', gerar_relatorio_csv, name='gerar_relatorio_csv'),
+    path('gerar_relatorio_pdf/<int:campo_id>/', gerar_relatorio_pdf_campo, name='gerar_relatorio_pdf_campo'),
+    path('gerar_relatorio_csv/<int:campo_id>/', gerar_relatorio_csv_campo, name='gerar_relatorio_csv_campo'),
 ]
