@@ -442,18 +442,18 @@ def aprovar_reserva(request, reserva_id):
 
     subject = 'Confirmação de Reserva: {}'.format(reserva.campo.nome)
     message = (
-        'Olá, {}\n\n'
-        'Sua reserva para o campo "{}" foi confirmada para a data {}.\n'
-        'Horário: {} às {}.\n'
-        'Valor total: R$ {:.2f}.\n\n'
-        'Obrigado por utilizar nossos serviços!'
+    'Olá, {}\n\n'
+    'Sua reserva para o campo "{}" foi confirmada para a data {}.\n'
+    'Horário: {} às {}.\n'
+    'Valor total: R$ {:.2f}.\n\n'
+    'Obrigado por utilizar nossos serviços!'
     ).format(
         reserva.usuario.username,
         reserva.campo.nome,
         reserva.data.strftime('%d/%m/%Y'),
         reserva.hora_inicio.strftime('%H:%M') if reserva.hora_inicio else 'Não especificado',
         reserva.hora_fim.strftime('%H:%M') if reserva.hora_fim else 'Não especificado',
-        reserva.valor_total,
+        reserva.valor_total if reserva.valor_total is not None else 0.0,
     )
 
     recipient_list = [reserva.usuario.email]
