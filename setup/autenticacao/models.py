@@ -51,7 +51,7 @@ class Reserva(models.Model):
     hora_fim = models.TimeField(null=True, blank=True)
     tipo_reserva = models.CharField(max_length=10, choices=[('hora', 'Por Hora'), ('dia', 'Por Dia')])
     status = models.CharField(max_length=20, default='pendente')
-    valor_total = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    valor_total = models.DecimalField(max_digits=8, decimal_places=2, default=0)
 
     def __str__(self):
         if self.hora_inicio and self.hora_fim:

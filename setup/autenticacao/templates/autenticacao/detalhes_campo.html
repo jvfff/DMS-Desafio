@@ -21,16 +21,27 @@
             {% csrf_token %}
             <div class="form-group">
                 <label for="data">Data</label>
-                <input type="date" id="data" name="data" class="form-control">
+                <input type="date" id="data" name="data" class="form-control" required>
             </div>
+
             <div class="form-group">
-                <label for="horario">Horário</label>
-                <select id="horario" name="horario" class="form-control">
+                <label for="hora_inicio">Horário de Início</label>
+                <select id="hora_inicio" name="hora_inicio" class="form-control" required>
                     {% for horario in horarios_disponiveis %}
-                        <p>{{ horario }}</p>
+                        <option value="{{ horario }}">{{ horario }}</option>
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="form-group">
+                <label for="hora_fim">Horário de Término</label>
+                <select id="hora_fim" name="hora_fim" class="form-control" required>
+                    {% for horario in horarios_disponiveis %}
+                        <option value="{{ horario }}">{{ horario }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary">Reservar</button>
         </form>
     </div>

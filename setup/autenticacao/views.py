@@ -403,11 +403,12 @@ def pesquisa_campos(request):
 
     return render(request, 'home/lista_campos_aprovados.html', {'campos': resultados})
 
+
+from datetime import timedelta
+
 @login_required
 def detalhes_campo(request, campo_id):
     campo = get_object_or_404(Campo, id=campo_id)
-
-    horarios_disponiveis = campo.horarios_disponiveis.split(',') if campo.horarios_disponiveis else []
 
     if request.method == 'POST':
         form = ReservaForm(request.POST)
@@ -415,12 +416,29 @@ def detalhes_campo(request, campo_id):
             reserva = form.save(commit=False)
             reserva.campo = campo
             reserva.usuario = request.user
+
+            print(f"hora_inicio: {reserva.hora_inicio}, hora_fim: {reserva.hora_fim}")
+            print(f"preco_por_hora: {campo.preco_por_hora}, preco_por_dia: {campo.preco_por_dia}")
+
             if reserva.tipo_reserva == 'hora':
-                duracao = (reserva.hora_fim.hour - reserva.hora_inicio.hour)
+                hora_inicio = timedelta(hours=reserva.hora_inicio.hour, minutes=reserva.hora_inicio.minute)
+                hora_fim = timedelta(hours=reserva.hora_fim.hour, minutes=reserva.hora_fim.minute)
+
+                if hora_fim > hora_inicio:
+                    duracao = (hora_fim - hora_inicio).total_seconds() / 3600  
+                else:
+                    duracao = ((hora_fim + timedelta(days=1)) - hora_inicio).total_seconds() / 3600
+
                 reserva.valor_total = duracao * campo.preco_por_hora
+                print(f"Duracao: {duracao} horas, Valor Total: {reserva.valor_total}")
             else:
                 reserva.valor_total = campo.preco_por_dia
-            
+
+            if reserva.valor_total is None:
+                reserva.valor_total = 0
+
+            print(f"Valor total final: {reserva.valor_total}")
+
             reserva.save()
             return redirect('meus_pedidos')
     else:
@@ -429,8 +447,9 @@ def detalhes_campo(request, campo_id):
     return render(request, 'autenticacao/detalhes_campo.html', {
         'campo': campo,
         'form': form,
-        'horarios_disponiveis': horarios_disponiveis  
     })
+
+
 
 
 
@@ -469,10 +488,13 @@ def aprovar_reserva(request, reserva_id):
     return redirect('pedidos_recebidos')
 
 
+from datetime import timedelta
+from decimal import Decimal
+
 @login_required
 def reserva_detalhes(request, campo_id):
     campo = get_object_or_404(Campo, id=campo_id)
-    avaliacoes = Avaliacao.objects.filter(campo=campo) 
+    avaliacoes = Avaliacao.objects.filter(campo=campo)
 
     if request.method == 'POST':
         form = ReservaForm(request.POST)
@@ -480,6 +502,19 @@ def reserva_detalhes(request, campo_id):
             reserva = form.save(commit=False)
             reserva.campo = campo
             reserva.usuario = request.user
+
+            if reserva.tipo_reserva == 'hora':
+                hora_inicio = timedelta(hours=reserva.hora_inicio.hour, minutes=reserva.hora_inicio.minute)
+                hora_fim = timedelta(hours=reserva.hora_fim.hour, minutes=reserva.hora_fim.minute)
+                duracao = (hora_fim - hora_inicio).total_seconds() / 3600 
+
+                reserva.valor_total = Decimal(duracao) * campo.preco_por_hora
+            else:
+                reserva.valor_total = campo.preco_por_dia
+
+            if reserva.valor_total is None:
+                reserva.valor_total = Decimal(0)
+
             reserva.save()
             return redirect('meus_pedidos')
     else:
@@ -487,9 +522,10 @@ def reserva_detalhes(request, campo_id):
 
     return render(request, 'autenticacao/reserva_detalhes.html', {
         'campo': campo,
-        'avaliacoes': avaliacoes,  
+        'avaliacoes': avaliacoes,
         'form': form
     })
+
 
 @login_required
 def meus_pedidos(request):
@@ -518,6 +554,9 @@ def deletar_campo_admin(request, campo_id):
     campo.delete()
     return redirect('admin_gerenciar_campos')
 
+from datetime import timedelta
+from decimal import Decimal
+
 @login_required
 def campo_detalhes(request, campo_id):
     campo = get_object_or_404(Campo, id=campo_id)
@@ -529,11 +568,19 @@ def campo_detalhes(request, campo_id):
             reserva = form.save(commit=False)
             reserva.campo = campo
             reserva.usuario = request.user
+
             if reserva.tipo_reserva == 'hora':
-                duracao = reserva.hora_fim.hour - reserva.hora_inicio.hour
-                reserva.valor_total = duracao * campo.preco_por_hora
+                hora_inicio = timedelta(hours=reserva.hora_inicio.hour, minutes=reserva.hora_inicio.minute)
+                hora_fim = timedelta(hours=reserva.hora_fim.hour, minutes=reserva.hora_fim.minute)
+                duracao = (hora_fim - hora_inicio).total_seconds() / 3600
+
+                reserva.valor_total = Decimal(duracao) * campo.preco_por_hora
             else:
                 reserva.valor_total = campo.preco_por_dia
+
+            if reserva.valor_total is None:
+                reserva.valor_total = Decimal(0)
+
             reserva.save()
             return redirect('meus_pedidos')
     else:
@@ -542,8 +589,9 @@ def campo_detalhes(request, campo_id):
     return render(request, 'autenticacao/reserva_detalhes.html', {
         'campo': campo,
         'form': form,
-        'avaliacoes': avaliacoes,  
+        'avaliacoes': avaliacoes,
     })
+
 
 
 @login_required
