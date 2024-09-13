@@ -584,7 +584,8 @@ def gerar_relatorio_pdf(request):
             data = [["Usuário", "Data", "Duração", "Valor Total"]]  
             for reserva in reservas:
                 duracao = f"{reserva.hora_inicio} - {reserva.hora_fim}" if reserva.hora_inicio and reserva.hora_fim else "Dia inteiro"
-                data.append([reserva.usuario.username, reserva.data, duracao, f"R$ {reserva.valor_total:.2f}"])
+                data.append([reserva.usuario.username, reserva.data, duracao, f"R$ {reserva.valor_total:.2f}" if reserva.valor_total is not None else "R$ 0.00"])
+
             
             table = Table(data)
             table.setStyle(TableStyle([
@@ -650,13 +651,13 @@ def gerar_relatorio_pdf_campo(request, campo_id):
         aprovado = "Sim" if reserva.status == "aprovado" else "Não"
         duracao = "Dia inteiro" if reserva.tipo_reserva == 'dia' else f"{reserva.hora_inicio} - {reserva.hora_fim}"
         reserva_data.append([
-            reserva.usuario.username,
-            reserva.usuario.email,
-            reserva.data.strftime("%d/%m/%Y"),
-            f"R$ {reserva.valor_total:.2f}",
-            duracao,
-            aprovado
-        ])
+        reserva.usuario.username,
+        reserva.usuario.email,
+        reserva.data.strftime("%d/%m/%Y"),
+        f"R$ {reserva.valor_total:.2f}" if reserva.valor_total is not None else "R$ 0.00",
+        duracao,
+        aprovado
+    ])
     
     reserva_table = Table(reserva_data, colWidths=[80, 150, 80, 80, 100, 60])
     reserva_table.setStyle(TableStyle([
@@ -688,7 +689,7 @@ def gerar_relatorio_csv(request):
         reservas = Reserva.objects.filter(campo=campo)
         for reserva in reservas:
             duracao = f"{reserva.hora_inicio} - {reserva.hora_fim}" if reserva.hora_inicio and reserva.hora_fim else "Dia inteiro"
-            writer.writerow([campo.nome, campo.localizacao, reserva.usuario.username, reserva.data, duracao, f"R$ {reserva.valor_total:.2f}"])
+            writer.writerow([campo.nome, campo.localizacao, reserva.usuario.username, reserva.data, duracao, f"R$ {reserva.valor_total or 0:.2f}"])
 
     return response
 
@@ -716,9 +717,10 @@ def gerar_relatorio_csv_campo(request, campo_id):
             reserva.usuario.username,
             reserva.usuario.email,
             reserva.data.strftime("%d/%m/%Y"),
-            f"R$ {reserva.valor_total:.2f}",
+            f"R$ {reserva.valor_total:.2f}" if reserva.valor_total is not None else "R$ 0.00",  
             duracao,
-            aprovado
+            "Sim" if reserva.status == "aprovado" else "Não"
         ])
+
 
     return response
